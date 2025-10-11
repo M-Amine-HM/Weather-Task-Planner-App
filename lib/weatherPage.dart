@@ -41,10 +41,11 @@ class _WeatherpageState extends State<Weatherpage> {
               ),
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 50),
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 80),
             child: Column(
               children: [
                 Row(
+                  //mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     Column(
                       children: [
@@ -69,12 +70,14 @@ class _WeatherpageState extends State<Weatherpage> {
                         ),
                       ],
                     ),
-                    SizedBox(width: 15.w),
+                    SizedBox(width: 100.w),
                     Container(
-                      width: 300.w, // Adjust width as needed
+                      width: 750.w,
+
+                      //height: 50.h, // Adjust width as needed
                       padding: EdgeInsets.symmetric(
-                        horizontal: 16.w,
-                        vertical: 8.h,
+                        horizontal: 20.w,
+                        //vertical: 1.h,
                       ),
                       decoration: BoxDecoration(
                         color: _isDarkMode
@@ -82,9 +85,7 @@ class _WeatherpageState extends State<Weatherpage> {
                             : Colors.black.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(30.r),
                         border: Border.all(
-                          color: _isDarkMode
-                              ? Colors.white.withOpacity(0.4)
-                              : Colors.black.withOpacity(0.2),
+                          color: _isDarkMode ? Colors.white : Colors.black,
                           width: 1,
                         ),
                       ),
@@ -117,6 +118,124 @@ class _WeatherpageState extends State<Weatherpage> {
                                 ),
                               ),
                             ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 100.w),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        // TODO: Add your logic to get current location
+                      },
+                      icon: Icon(
+                        Icons.my_location,
+                        color: Colors.white,
+                        size: 20.sp,
+                      ),
+                      label: Text(
+                        "Current Location",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green, // Button color
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20.w,
+                          vertical: 25.h,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20.r),
+                        ),
+                        elevation: 4,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 60.h),
+                Row(
+                  children: [
+                    Container(
+                      width: 400.w,
+                      height: 280.h,
+                      decoration: BoxDecoration(
+                        color: _isDarkMode
+                            ? Colors.grey[800]
+                            : Colors.grey[350],
+                        borderRadius: BorderRadius.circular(20.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _isDarkMode
+                                ? Colors.black.withOpacity(0.5)
+                                : Colors.grey.withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 40.w),
+                    Container(
+                      width: 800.w,
+                      height: 280.h,
+                      decoration: BoxDecoration(
+                        color: _isDarkMode
+                            ? Colors.grey[800]
+                            : Colors.grey[350],
+                        borderRadius: BorderRadius.circular(20.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _isDarkMode
+                                ? Colors.black.withOpacity(0.5)
+                                : Colors.grey.withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 50.h),
+                Row(
+                  children: [
+                    Container(
+                      width: 340.w,
+                      height: 320.h,
+                      decoration: BoxDecoration(
+                        color: _isDarkMode
+                            ? Colors.grey[800]
+                            : Colors.grey[350],
+                        borderRadius: BorderRadius.circular(20.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _isDarkMode
+                                ? Colors.black.withOpacity(0.5)
+                                : Colors.grey.withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 40.w),
+                    Container(
+                      width: 860.w,
+                      height: 320.h,
+                      decoration: BoxDecoration(
+                        color: _isDarkMode
+                            ? Colors.grey[800]
+                            : Colors.grey[350],
+                        borderRadius: BorderRadius.circular(20.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _isDarkMode
+                                ? Colors.black.withOpacity(0.5)
+                                : Colors.grey.withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
                           ),
                         ],
                       ),
