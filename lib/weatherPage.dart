@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:weatherwebapp/agendaPage.dart';
 import 'package:weatherwebapp/plannerPage.dart';
 
 class Weatherpage extends StatefulWidget {
@@ -156,7 +157,10 @@ class _WeatherpageState extends State<Weatherpage> {
                     SizedBox(width: 20.w),
                     ElevatedButton(
                       onPressed: () {
-                        // TODO: Add your logic to get current location
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => Agendapage()),
+                        );
                       },
                       child: Text(
                         "Agenda",
@@ -181,7 +185,7 @@ class _WeatherpageState extends State<Weatherpage> {
                     SizedBox(width: 20.w),
                     ElevatedButton(
                       onPressed: () {
-                        Navigator.push(
+                        Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
                             builder: (context) => Plannerpage(),
