@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:weatherwebapp/plannerPage.dart';
 
 class Weatherpage extends StatefulWidget {
   const Weatherpage({super.key});
@@ -70,9 +71,9 @@ class _WeatherpageState extends State<Weatherpage> {
                         ),
                       ],
                     ),
-                    SizedBox(width: 100.w),
+                    SizedBox(width: 50.w),
                     Container(
-                      width: 750.w,
+                      width: 600.w,
 
                       //height: 50.h, // Adjust width as needed
                       padding: EdgeInsets.symmetric(
@@ -122,7 +123,7 @@ class _WeatherpageState extends State<Weatherpage> {
                         ],
                       ),
                     ),
-                    SizedBox(width: 100.w),
+                    SizedBox(width: 20.w),
                     ElevatedButton.icon(
                       onPressed: () {
                         // TODO: Add your logic to get current location
@@ -142,6 +143,61 @@ class _WeatherpageState extends State<Weatherpage> {
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green, // Button color
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20.w,
+                          vertical: 25.h,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20.r),
+                        ),
+                        elevation: 4,
+                      ),
+                    ),
+                    SizedBox(width: 20.w),
+                    ElevatedButton(
+                      onPressed: () {
+                        // TODO: Add your logic to get current location
+                      },
+                      child: Text(
+                        "Agenda",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red, // Button color
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20.w,
+                          vertical: 25.h,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20.r),
+                        ),
+                        elevation: 4,
+                      ),
+                    ),
+                    SizedBox(width: 20.w),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => Plannerpage(),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        "My Planner",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue, // Button color
                         padding: EdgeInsets.symmetric(
                           horizontal: 20.w,
                           vertical: 25.h,
