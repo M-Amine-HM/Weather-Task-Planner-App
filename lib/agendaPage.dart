@@ -1,248 +1,202 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:weatherwebapp/plannerPage.dart';
-import 'package:weatherwebapp/weatherPage.dart';
 
-class Agendapage extends StatefulWidget {
-  const Agendapage({super.key});
+class AgendaWidget extends StatefulWidget {
+  final bool isDarkMode;
+
+  const AgendaWidget({super.key, required this.isDarkMode});
 
   @override
-  State<Agendapage> createState() => _AgendapageState();
+  State<AgendaWidget> createState() => _AgendaWidgetState();
 }
 
-class _AgendapageState extends State<Agendapage> {
+class _AgendaWidgetState extends State<AgendaWidget> {
+  DateTime _selectedDay = DateTime.now();
   DateTime _focusedDay = DateTime.now();
-  DateTime? _selectedDay;
-  bool _isDarkMode = false;
-  String _isDarkModeString = "Dark Mode";
-  String _isLightModeString = "Light Mode";
+  CalendarFormat _calendarFormat = CalendarFormat.month;
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: _isDarkMode
-            ? const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Color.fromARGB(255, 43, 43, 43),
-                    Color.fromARGB(255, 255, 255, 255),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              )
-            : const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Color.fromARGB(255, 255, 255, 255),
-                    Color.fromARGB(255, 43, 43, 43),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 80),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Row(
-                //mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  Column(
-                    children: [
-                      Switch(
-                        value: _isDarkMode,
-                        activeColor: Colors.black,
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      padding: EdgeInsets.all(30.w),
+      decoration: BoxDecoration(
+        color: widget.isDarkMode ? Colors.grey[850] : Colors.grey[100],
+        borderRadius: BorderRadius.circular(20.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title
+          Text(
+            "My Agenda",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 24.sp,
+              color: widget.isDarkMode ? Colors.white : Colors.black87,
+            ),
+          ),
+          SizedBox(height: 20.h),
 
-                        inactiveThumbColor: Colors.black,
-                        activeTrackColor: Colors.white,
-                        onChanged: (value) {
-                          setState(() {
-                            _isDarkMode = value;
-                          });
-                        },
+          // Calendar
+          Expanded(
+            child: Container(
+              padding: EdgeInsets.all(16.w),
+              decoration: BoxDecoration(
+                color: widget.isDarkMode ? Colors.grey[800] : Colors.white,
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // Determine if we should use compact mode
+                  bool isCompact =
+                      constraints.maxWidth < 400 || constraints.maxHeight < 400;
+
+                  return SingleChildScrollView(
+                    child: TableCalendar(
+                      firstDay: DateTime.utc(2020, 1, 1),
+                      lastDay: DateTime.utc(2030, 12, 31),
+                      focusedDay: _focusedDay,
+                      calendarFormat: _calendarFormat,
+                      selectedDayPredicate: (day) =>
+                          isSameDay(_selectedDay, day),
+                      onDaySelected: (selectedDay, focusedDay) {
+                        setState(() {
+                          _selectedDay = selectedDay;
+                          _focusedDay = focusedDay;
+                        });
+                      },
+                      onFormatChanged: (format) {
+                        setState(() {
+                          _calendarFormat = format;
+                        });
+                      },
+                      onPageChanged: (focusedDay) {
+                        _focusedDay = focusedDay;
+                      },
+                      // Responsive Calendar Style
+                      calendarStyle: CalendarStyle(
+                        todayDecoration: BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                        ),
+                        selectedDecoration: BoxDecoration(
+                          color: Colors.blue,
+                          shape: BoxShape.circle,
+                        ),
+                        defaultTextStyle: TextStyle(
+                          color: widget.isDarkMode
+                              ? Colors.white
+                              : Colors.black,
+                          fontSize: isCompact ? 12.sp : 14.sp,
+                        ),
+                        weekendTextStyle: TextStyle(
+                          color: widget.isDarkMode
+                              ? Colors.white70
+                              : Colors.black54,
+                          fontSize: isCompact ? 12.sp : 14.sp,
+                        ),
+                        outsideTextStyle: TextStyle(
+                          color: widget.isDarkMode
+                              ? Colors.white38
+                              : Colors.black38,
+                          fontSize: isCompact ? 12.sp : 14.sp,
+                        ),
+                        todayTextStyle: TextStyle(
+                          color: Colors.white,
+                          fontSize: isCompact ? 12.sp : 14.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        selectedTextStyle: TextStyle(
+                          color: Colors.white,
+                          fontSize: isCompact ? 12.sp : 14.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        // Responsive cell padding
+                        cellPadding: EdgeInsets.all(isCompact ? 4.w : 8.w),
+                        cellMargin: EdgeInsets.all(isCompact ? 2.w : 4.w),
                       ),
-                      Text(
-                        _isDarkMode ? _isDarkModeString : _isLightModeString,
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.w700,
+                      // Responsive Header Style
+                      headerStyle: HeaderStyle(
+                        formatButtonVisible: !isCompact,
+                        titleCentered: true,
+                        formatButtonShowsNext: false,
+                        titleTextStyle: TextStyle(
+                          fontSize: isCompact ? 16.sp : 18.sp,
+                          fontWeight: FontWeight.bold,
+                          color: widget.isDarkMode
+                              ? Colors.white
+                              : Colors.black,
+                        ),
+                        formatButtonTextStyle: TextStyle(
+                          fontSize: isCompact ? 12.sp : 14.sp,
+                          color: widget.isDarkMode
+                              ? Colors.white
+                              : Colors.black,
+                        ),
+                        formatButtonDecoration: BoxDecoration(
+                          border: Border.all(
+                            color: widget.isDarkMode
+                                ? Colors.white38
+                                : Colors.black38,
+                          ),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        leftChevronIcon: Icon(
+                          Icons.chevron_left,
+                          color: widget.isDarkMode
+                              ? Colors.white
+                              : Colors.black,
+                          size: isCompact ? 20.sp : 24.sp,
+                        ),
+                        rightChevronIcon: Icon(
+                          Icons.chevron_right,
+                          color: widget.isDarkMode
+                              ? Colors.white
+                              : Colors.black,
+                          size: isCompact ? 20.sp : 24.sp,
+                        ),
+                        headerPadding: EdgeInsets.symmetric(
+                          vertical: isCompact ? 8.h : 12.h,
                         ),
                       ),
-                    ],
-                  ),
-                  Spacer(),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      // TODO: Add your logic to get current location
-                    },
-                    icon: Icon(
-                      Icons.my_location,
-                      color: Colors.white,
-                      size: 20.sp,
+                      // Responsive Days of Week Style
+                      daysOfWeekStyle: DaysOfWeekStyle(
+                        weekdayStyle: TextStyle(
+                          color: widget.isDarkMode
+                              ? Colors.white
+                              : Colors.black,
+                          fontSize: isCompact ? 12.sp : 14.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        weekendStyle: TextStyle(
+                          color: widget.isDarkMode
+                              ? Colors.white70
+                              : Colors.black54,
+                          fontSize: isCompact ? 12.sp : 14.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      // Responsive sizing
+                      daysOfWeekHeight: isCompact ? 30.h : 40.h,
+                      rowHeight: isCompact ? 35.h : 48.h,
+                      availableGestures: AvailableGestures.all,
                     ),
-                    label: Text(
-                      "Current Location",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green, // Button color
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 20.w,
-                        vertical: 25.h,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20.r),
-                      ),
-                      elevation: 4,
-                    ),
-                  ),
-                  SizedBox(width: 20.w),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => Weatherpage()),
-                      );
-                    },
-                    child: Text(
-                      "Weather",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.yellow.shade900, // Button color
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 20.w,
-                        vertical: 25.h,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20.r),
-                      ),
-                      elevation: 4,
-                    ),
-                  ),
-                  SizedBox(width: 20.w),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => Plannerpage()),
-                      );
-                    },
-                    child: Text(
-                      "My Planner",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue, // Button color
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 20.w,
-                        vertical: 25.h,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20.r),
-                      ),
-                      elevation: 4,
-                    ),
-                  ),
-                ],
+                  );
+                },
               ),
-
-              SizedBox(height: 40.h),
-
-              // 📅 Title
-              Align(
-                alignment: Alignment.center,
-                child: Text(
-                  "Your Agenda",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 30.sp,
-                    color: _isDarkMode ? Colors.white : Colors.black,
-                  ),
-                ),
-              ),
-
-              SizedBox(height: 20.h),
-              Container(
-                decoration: BoxDecoration(
-                  color: _isDarkMode ? Colors.grey[850] : Colors.white,
-                  borderRadius: BorderRadius.circular(20.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.25),
-                      blurRadius: 15,
-                      offset: const Offset(8, 10),
-                    ),
-                  ],
-                ),
-                padding: EdgeInsets.all(20.w),
-                child: TableCalendar(
-                  focusedDay: _focusedDay,
-                  firstDay: DateTime.utc(2020, 1, 1),
-                  lastDay: DateTime.utc(2030, 12, 31),
-                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                  onDaySelected: (selectedDay, focusedDay) {
-                    setState(() {
-                      _selectedDay = selectedDay;
-                      _focusedDay = focusedDay;
-                    });
-                  },
-                  calendarStyle: CalendarStyle(
-                    todayDecoration: BoxDecoration(
-                      color: Colors.greenAccent,
-                      shape: BoxShape.circle,
-                    ),
-                    selectedDecoration: BoxDecoration(
-                      color: Colors.blueAccent,
-                      shape: BoxShape.circle,
-                    ),
-                    weekendTextStyle: TextStyle(
-                      color: _isDarkMode ? Colors.red[300] : Colors.red,
-                    ),
-                    defaultTextStyle: TextStyle(
-                      color: _isDarkMode ? Colors.white : Colors.black87,
-                      fontSize: 16.sp,
-                    ),
-                  ),
-                  headerStyle: HeaderStyle(
-                    titleCentered: true,
-                    formatButtonVisible: false,
-                    titleTextStyle: TextStyle(
-                      fontSize: 20.sp,
-                      color: _isDarkMode ? Colors.white : Colors.black,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    leftChevronIcon: Icon(
-                      Icons.chevron_left,
-                      color: _isDarkMode ? Colors.white : Colors.black,
-                    ),
-                    rightChevronIcon: Icon(
-                      Icons.chevron_right,
-                      color: _isDarkMode ? Colors.white : Colors.black,
-                    ),
-                  ),
-                ),
-              ),
-
-              //   SizedBox(height: 50.h),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

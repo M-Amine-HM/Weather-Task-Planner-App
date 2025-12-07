@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:weatherwebapp/weatherPage.dart';
+import 'package:weatherwebapp/dashboard.dart';
+//import 'package:weatherwebapp/dashboard_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,8 +13,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ScreenUtilInit(
-      // This is the reference size you used when designing (mobile or web)
-      designSize: const Size(1440, 900), // Recommended base for web layouts
+      designSize: const Size(1440, 900),
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
@@ -24,7 +24,7 @@ class MyApp extends StatelessWidget {
           home: child,
         );
       },
-      child: const Weatherpage(),
+      child: const DashboardPage(),
     );
   }
 }
