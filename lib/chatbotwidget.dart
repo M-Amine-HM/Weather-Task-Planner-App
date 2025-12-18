@@ -1,10 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'services/Api.dart';
+import 'models/plan_model.dart';
+import 'models/weather_model.dart';
 
 class ChatbotWidget extends StatefulWidget {
   final bool isDarkMode;
+  final List<Plan>? plans;
+  final Weather? weather;
+  final String? cityName;
+  final List<Map<String, dynamic>>? weatherForecast;
 
-  const ChatbotWidget({super.key, required this.isDarkMode});
+  const ChatbotWidget({
+    super.key,
+    required this.isDarkMode,
+    this.plans,
+    this.weather,
+    this.cityName,
+    this.weatherForecast,
+  });
 
   @override
   State<ChatbotWidget> createState() => _ChatbotWidgetState();
@@ -13,8 +27,8 @@ class ChatbotWidget extends StatefulWidget {
 class _ChatbotWidgetState extends State<ChatbotWidget> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  bool _isLoading = false;
 
-  // TODO: Replace with actual chatbot responses
   final List<Map<String, dynamic>> _messages = [
     {
       'text':
@@ -24,32 +38,206 @@ class _ChatbotWidgetState extends State<ChatbotWidget> {
     },
   ];
 
-  void _sendMessage() {
+  Future<void> _sendMessage() async {
     if (_messageController.text.trim().isEmpty) return;
+
+    String userMessage = _messageController.text.trim();
+    _messageController.clear();
 
     setState(() {
       _messages.add({
-        'text': _messageController.text,
+        'text': userMessage,
         'isUser': true,
         'time': TimeOfDay.now().format(context),
       });
+      _isLoading = true;
+    });
 
-      // TODO: Replace with actual AI response
-      Future.delayed(const Duration(seconds: 1), () {
+    _scrollToBottom();
+
+    try {
+      // Build context from weather and plans
+      String? aiContext = _buildContext();
+
+      // Debug: Print context being sent
+      print('=== Sending to AI ===');
+      print('User message: $userMessage');
+      print('Context length: ${aiContext?.length ?? 0} characters');
+      if (aiContext != null) {
+        print(
+          'Context preview:\n${aiContext.substring(0, aiContext.length > 200 ? 200 : aiContext.length)}...',
+        );
+      }
+
+      // Send message to AI with context
+      String? aiResponse = await Api.sendChatMessage(
+        userMessage,
+        context: aiContext,
+      );
+      if (aiResponse != null) {
+        setState(() {
+          _messages.add({
+            'text': aiResponse,
+            'isUser': false,
+            'time': TimeOfDay.now().format(this.context),
+          });
+          _isLoading = false;
+        });
+      } else {
         setState(() {
           _messages.add({
             'text':
-                'Based on the weather forecast, it might rain during your picnic on Saturday. Consider moving it earlier or bringing a tent ☔',
+                'Sorry, I couldn\'t process your request. Please try again.',
             'isUser': false,
-            'time': TimeOfDay.now().format(context),
+            'time': TimeOfDay.now().format(this.context),
           });
+          _isLoading = false;
         });
-        _scrollToBottom();
-      });
-    });
+      }
+    } catch (e) {
+      String errorMessage =
+          'Error connecting to AI service. Please check your connection.';
 
-    _messageController.clear();
+      // Check for quota exceeded error
+      if (e.toString().contains('exceeded your current quota') ||
+          e.toString().contains('429')) {
+        errorMessage =
+            'AI service quota exceeded. Please try again later or contact support.';
+      }
+
+      setState(() {
+        _messages.add({
+          'text': errorMessage,
+          'isUser': false,
+          'time': TimeOfDay.now().format(this.context),
+        });
+        _isLoading = false;
+      });
+      print('Chat error: $e');
+    }
+
     _scrollToBottom();
+  }
+
+  String? _buildContext() {
+    // Build context string from plans and weather data
+    StringBuffer context = StringBuffer();
+
+    // Add weather information
+    if (widget.weather != null) {
+      context.writeln('=== CURRENT WEATHER ===');
+      context.writeln('Location: ${widget.cityName ?? "Unknown"}');
+      context.writeln(
+        'Temperature: ${widget.weather!.temperature}°C (Feels like: ${widget.weather!.feelsLike}°C)',
+      );
+      context.writeln('Condition: ${widget.weather!.condition}');
+      context.writeln('Description: ${widget.weather!.description}');
+      context.writeln('Humidity: ${widget.weather!.humidity}%');
+      context.writeln('Wind Speed: ${widget.weather!.windSpeed} km/h');
+      context.writeln('');
+    }
+
+    // Add weather forecast information
+    if (widget.weatherForecast != null && widget.weatherForecast!.isNotEmpty) {
+      context.writeln('=== 7-DAY WEATHER FORECAST ===');
+      context.writeln('Location: ${widget.cityName ?? "Unknown"}');
+      context.writeln('');
+
+      int daysToShow = widget.weatherForecast!.length > 7
+          ? 7
+          : widget.weatherForecast!.length;
+      for (int i = 0; i < daysToShow; i++) {
+        var forecast = widget.weatherForecast![i];
+        String date = forecast['date'] ?? 'Unknown date';
+        String dateFormatted = _formatForecastDate(date, i);
+
+        context.writeln('$dateFormatted:');
+        context.writeln(
+          '  Max: ${forecast['temperature_max']}°C, Min: ${forecast['temperature_min']}°C',
+        );
+        context.writeln(
+          '  Condition: ${forecast['condition']} - ${forecast['description']}',
+        );
+      }
+      context.writeln('');
+    }
+
+    // Add plans information with better formatting
+    if (widget.plans != null && widget.plans!.isNotEmpty) {
+      context.writeln('=== USER\'S PLANS (Total: ${widget.plans!.length}) ===');
+
+      // Group plans by date for better organization
+      Map<String, List<Plan>> plansByDate = {};
+      for (var plan in widget.plans!) {
+        String dateStr = plan.date != null
+            ? _formatDate(plan.date!)
+            : 'No specific date';
+        if (!plansByDate.containsKey(dateStr)) {
+          plansByDate[dateStr] = [];
+        }
+        plansByDate[dateStr]!.add(plan);
+      }
+
+      // Output plans organized by date
+      plansByDate.forEach((date, plans) {
+        context.writeln('\n📅 $date:');
+        for (var plan in plans) {
+          context.writeln('  • ${plan.title}');
+          context.writeln('    Details: ${plan.description}');
+        }
+      });
+      context.writeln('');
+    } else {
+      context.writeln('=== USER\'S PLANS ===');
+      context.writeln('No plans created yet.');
+      context.writeln('');
+    }
+
+    return context.isEmpty ? null : context.toString();
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(Duration(days: 1));
+    final planDate = DateTime(date.year, date.month, date.day);
+
+    if (planDate == today) {
+      return 'Today (${date.day}/${date.month}/${date.year})';
+    } else if (planDate == tomorrow) {
+      return 'Tomorrow (${date.day}/${date.month}/${date.year})';
+    } else {
+      final daysUntil = planDate.difference(today).inDays;
+      if (daysUntil > 0 && daysUntil < 7) {
+        return 'In $daysUntil days (${date.day}/${date.month}/${date.year})';
+      } else if (daysUntil < 0 && daysUntil > -7) {
+        return '${daysUntil.abs()} days ago (${date.day}/${date.month}/${date.year})';
+      }
+      return '${date.day}/${date.month}/${date.year}';
+    }
+  }
+
+  String _formatForecastDate(String dateStr, int dayIndex) {
+    try {
+      DateTime date = DateTime.parse(dateStr);
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final forecastDate = DateTime(date.year, date.month, date.day);
+
+      final daysFromNow = forecastDate.difference(today).inDays;
+
+      if (daysFromNow == 0) {
+        return '📍 Today (${date.day}/${date.month})';
+      } else if (daysFromNow == 1) {
+        return '📍 Tomorrow (${date.day}/${date.month})';
+      } else if (daysFromNow > 1 && daysFromNow <= 7) {
+        return '📍 In $daysFromNow days (${date.day}/${date.month})';
+      } else {
+        return '📍 ${date.day}/${date.month}/${date.year}';
+      }
+    } catch (e) {
+      return '📍 Day ${dayIndex + 1}';
+    }
   }
 
   void _scrollToBottom() {
@@ -125,12 +313,46 @@ class _ChatbotWidgetState extends State<ChatbotWidget> {
                 color: widget.isDarkMode ? Colors.grey[800] : Colors.white,
                 borderRadius: BorderRadius.circular(12.r),
               ),
-              child: ListView.builder(
-                controller: _scrollController,
-                itemCount: _messages.length,
-                itemBuilder: (context, index) {
-                  return _buildMessage(_messages[index]);
-                },
+              child: Column(
+                children: [
+                  Expanded(
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      itemCount: _messages.length,
+                      itemBuilder: (context, index) {
+                        return _buildMessage(_messages[index]);
+                      },
+                    ),
+                  ),
+                  if (_isLoading)
+                    Padding(
+                      padding: EdgeInsets.all(8.w),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 20.w,
+                            height: 20.h,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: widget.isDarkMode
+                                  ? Colors.purple[300]
+                                  : const Color(0xFF1E4A7B),
+                            ),
+                          ),
+                          SizedBox(width: 12.w),
+                          Text(
+                            'AI is thinking...',
+                            style: TextStyle(
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                              fontSize: 14.sp,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
             ),
           ),

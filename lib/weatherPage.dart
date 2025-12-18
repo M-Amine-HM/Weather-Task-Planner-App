@@ -1,10 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'models/weather_model.dart';
+import 'services/Api.dart';
 
 class WeatherWidget extends StatefulWidget {
   final bool isDarkMode;
+  final Function(
+    Weather? weather,
+    String? city,
+    List<Map<String, dynamic>>? forecast,
+  )?
+  onWeatherUpdate;
 
-  const WeatherWidget({super.key, required this.isDarkMode});
+  const WeatherWidget({
+    super.key,
+    required this.isDarkMode,
+    this.onWeatherUpdate,
+  });
 
   @override
   State<WeatherWidget> createState() => _WeatherWidgetState();
@@ -13,13 +25,85 @@ class WeatherWidget extends StatefulWidget {
 class _WeatherWidgetState extends State<WeatherWidget> {
   final TextEditingController _searchController = TextEditingController();
 
-  // TODO: Replace with actual API data
-  String _cityName = "New York";
-  String _temperature = "24°C";
-  String _weatherCondition = "Partly Cloudy";
-  String _humidity = "65%";
-  String _windSpeed = "12 km/h";
-  IconData _weatherIcon = Icons.wb_cloudy;
+  Weather? _currentWeather;
+  bool _isLoading = false;
+  String _errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchWeather("New York");
+  }
+
+  Future<void> _fetchWeather(String city) async {
+    if (city.trim().isEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      // Fetch both current weather and forecast
+      Weather? weather = await Api.getCurrentWeather(city.trim());
+      Map<String, dynamic>? forecastData = await Api.getWeatherForecast(
+        city.trim(),
+        days: 7,
+      );
+
+      if (weather != null) {
+        setState(() {
+          _currentWeather = weather;
+          _isLoading = false;
+        });
+        // Notify parent dashboard about weather and forecast update
+        List<Map<String, dynamic>>? forecast;
+        if (forecastData != null && forecastData['forecast'] != null) {
+          try {
+            forecast = (forecastData['forecast'] as List)
+                .map((item) => item as Map<String, dynamic>)
+                .toList();
+            print('Forecast loaded: ${forecast.length} days');
+          } catch (e) {
+            print('Error parsing forecast: $e');
+          }
+        }
+        widget.onWeatherUpdate?.call(weather, city.trim(), forecast);
+      } else {
+        setState(() {
+          _errorMessage = 'City not found. Please try again.';
+          _isLoading = false;
+        });
+        widget.onWeatherUpdate?.call(null, null, null);
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to fetch weather. Check connection.';
+        _isLoading = false;
+      });
+    }
+  }
+
+  IconData _getWeatherIcon(String condition) {
+    switch (condition.toLowerCase()) {
+      case 'clear':
+        return Icons.wb_sunny;
+      case 'clouds':
+        return Icons.wb_cloudy;
+      case 'rain':
+      case 'drizzle':
+        return Icons.umbrella;
+      case 'thunderstorm':
+        return Icons.flash_on;
+      case 'snow':
+        return Icons.ac_unit;
+      case 'fog':
+      case 'mist':
+        return Icons.cloud;
+      default:
+        return Icons.wb_cloudy;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +196,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     onPressed: () {
-                      // TODO: Search weather for city
+                      _fetchWeather(_searchController.text);
                     },
                   ),
                   hintText: isVeryCompact ? "Search..." : "Search city...",
@@ -159,154 +243,227 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                       ),
                     ],
                   ),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // City Name
-                        Text(
-                          _cityName,
-                          style: TextStyle(
-                            fontSize: isVeryCompact
-                                ? 18.sp
-                                : (isCompact ? 22.sp : 26.sp),
-                            fontWeight: FontWeight.bold,
+                  child: _isLoading
+                      ? Center(
+                          child: CircularProgressIndicator(
                             color: widget.isDarkMode
-                                ? Colors.white
-                                : Colors.black87,
+                                ? Colors.blue[300]
+                                : const Color(0xFF1E4A7B),
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(
-                          height: isVeryCompact
-                              ? 8.h
-                              : (isCompact ? 12.h : 15.h),
-                        ),
-
-                        // Weather Icon and Temperature
-                        isVeryCompact
-                            ? Column(
-                                children: [
-                                  Icon(
-                                    _weatherIcon,
-                                    size: 50.sp,
-                                    color: widget.isDarkMode
-                                        ? Colors.blue[300]
-                                        : Colors.orange,
-                                  ),
-                                  SizedBox(height: 8.h),
-                                  Text(
-                                    _temperature,
-                                    style: TextStyle(
-                                      fontSize: 32.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: widget.isDarkMode
-                                          ? Colors.white
-                                          : Colors.black87,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    _weatherIcon,
-                                    size: isCompact ? 60.sp : 70.sp,
-                                    color: widget.isDarkMode
-                                        ? Colors.blue[300]
-                                        : Colors.orange,
-                                  ),
-                                  SizedBox(width: isCompact ? 12.w : 16.w),
-                                  Text(
-                                    _temperature,
-                                    style: TextStyle(
-                                      fontSize: isCompact ? 40.sp : 48.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: widget.isDarkMode
-                                          ? Colors.white
-                                          : Colors.black87,
-                                    ),
-                                  ),
-                                ],
+                        )
+                      : _errorMessage.isNotEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                size: 48.sp,
+                                color: Colors.red,
                               ),
-                        SizedBox(
-                          height: isVeryCompact
-                              ? 6.h
-                              : (isCompact ? 8.h : 10.h),
-                        ),
-
-                        // Weather Condition
-                        Text(
-                          _weatherCondition,
-                          style: TextStyle(
-                            fontSize: isVeryCompact
-                                ? 14.sp
-                                : (isCompact ? 16.sp : 18.sp),
-                            color: widget.isDarkMode
-                                ? Colors.white70
-                                : Colors.black54,
+                              SizedBox(height: 16.h),
+                              Text(
+                                _errorMessage,
+                                style: TextStyle(
+                                  color: widget.isDarkMode
+                                      ? Colors.white70
+                                      : Colors.black54,
+                                  fontSize: 14.sp,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(
-                          height: isVeryCompact
-                              ? 12.h
-                              : (isCompact ? 16.h : 20.h),
-                        ),
-
-                        // Weather Details
-                        isVeryCompact
-                            ? Column(
-                                children: [
-                                  _buildCompactWeatherDetail(
-                                    Icons.water_drop,
-                                    "Humidity",
-                                    _humidity,
-                                    isVeryCompact,
-                                  ),
-                                  SizedBox(height: 8.h),
-                                  _buildCompactWeatherDetail(
-                                    Icons.air,
-                                    "Wind",
-                                    _windSpeed,
-                                    isVeryCompact,
-                                  ),
-                                ],
-                              )
-                            : Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
-                                children: [
-                                  Flexible(
-                                    child: _buildWeatherDetail(
-                                      Icons.water_drop,
-                                      "Humidity",
-                                      _humidity,
-                                      isCompact,
-                                    ),
-                                  ),
-                                  Container(
-                                    height: isCompact ? 40.h : 50.h,
-                                    width: 1,
-                                    color: widget.isDarkMode
-                                        ? Colors.white24
-                                        : Colors.black12,
-                                  ),
-                                  Flexible(
-                                    child: _buildWeatherDetail(
-                                      Icons.air,
-                                      "Wind",
-                                      _windSpeed,
-                                      isCompact,
-                                    ),
-                                  ),
-                                ],
+                        )
+                      : _currentWeather == null
+                      ? Center(
+                          child: Text(
+                            'Search for a city',
+                            style: TextStyle(
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                            ),
+                          ),
+                        )
+                      : SingleChildScrollView(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // City Name
+                              Text(
+                                _currentWeather!.city,
+                                style: TextStyle(
+                                  fontSize: isVeryCompact
+                                      ? 18.sp
+                                      : (isCompact ? 22.sp : 26.sp),
+                                  fontWeight: FontWeight.bold,
+                                  color: widget.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
-                      ],
-                    ),
-                  ),
+                              SizedBox(
+                                height: isVeryCompact
+                                    ? 8.h
+                                    : (isCompact ? 12.h : 15.h),
+                              ),
+
+                              // Weather Icon and Temperature
+                              isVeryCompact
+                                  ? Column(
+                                      children: [
+                                        Icon(
+                                          _getWeatherIcon(
+                                            _currentWeather!.condition,
+                                          ),
+                                          size: 50.sp,
+                                          color: widget.isDarkMode
+                                              ? Colors.blue[300]
+                                              : Colors.orange,
+                                        ),
+                                        SizedBox(height: 8.h),
+                                        Text(
+                                          '${_currentWeather!.temperature.toStringAsFixed(1)}°C',
+                                          style: TextStyle(
+                                            fontSize: 32.sp,
+                                            fontWeight: FontWeight.bold,
+                                            color: widget.isDarkMode
+                                                ? Colors.white
+                                                : Colors.black87,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          _getWeatherIcon(
+                                            _currentWeather!.condition,
+                                          ),
+                                          size: isCompact ? 60.sp : 70.sp,
+                                          color: widget.isDarkMode
+                                              ? Colors.blue[300]
+                                              : Colors.orange,
+                                        ),
+                                        SizedBox(
+                                          width: isCompact ? 12.w : 16.w,
+                                        ),
+                                        Text(
+                                          '${_currentWeather!.temperature.toStringAsFixed(1)}°C',
+                                          style: TextStyle(
+                                            fontSize: isCompact ? 40.sp : 48.sp,
+                                            fontWeight: FontWeight.bold,
+                                            color: widget.isDarkMode
+                                                ? Colors.white
+                                                : Colors.black87,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                              SizedBox(
+                                height: isVeryCompact
+                                    ? 6.h
+                                    : (isCompact ? 8.h : 10.h),
+                              ),
+
+                              // Weather Condition
+                              Text(
+                                '${_currentWeather!.condition} - ${_currentWeather!.description}',
+                                style: TextStyle(
+                                  fontSize: isVeryCompact
+                                      ? 14.sp
+                                      : (isCompact ? 16.sp : 18.sp),
+                                  color: widget.isDarkMode
+                                      ? Colors.white70
+                                      : Colors.black54,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(
+                                height: isVeryCompact
+                                    ? 12.h
+                                    : (isCompact ? 16.h : 20.h),
+                              ),
+
+                              // Weather Details
+                              isVeryCompact
+                                  ? Column(
+                                      children: [
+                                        _buildCompactWeatherDetail(
+                                          Icons.water_drop,
+                                          "Humidity",
+                                          '${_currentWeather!.humidity}%',
+                                          isVeryCompact,
+                                        ),
+                                        SizedBox(height: 8.h),
+                                        _buildCompactWeatherDetail(
+                                          Icons.air,
+                                          "Wind",
+                                          '${_currentWeather!.windSpeed.toStringAsFixed(1)} km/h',
+                                          isVeryCompact,
+                                        ),
+                                        SizedBox(height: 8.h),
+                                        _buildCompactWeatherDetail(
+                                          Icons.thermostat,
+                                          "Feels Like",
+                                          '${_currentWeather!.feelsLike.toStringAsFixed(1)}°C',
+                                          isVeryCompact,
+                                        ),
+                                      ],
+                                    )
+                                  : Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      children: [
+                                        Flexible(
+                                          child: _buildWeatherDetail(
+                                            Icons.water_drop,
+                                            "Humidity",
+                                            '${_currentWeather!.humidity}%',
+                                            isCompact,
+                                          ),
+                                        ),
+                                        Container(
+                                          height: isCompact ? 40.h : 50.h,
+                                          width: 1,
+                                          color: widget.isDarkMode
+                                              ? Colors.white24
+                                              : Colors.black12,
+                                        ),
+                                        Flexible(
+                                          child: _buildWeatherDetail(
+                                            Icons.air,
+                                            "Wind",
+                                            '${_currentWeather!.windSpeed.toStringAsFixed(1)} km/h',
+                                            isCompact,
+                                          ),
+                                        ),
+                                        Container(
+                                          height: isCompact ? 40.h : 50.h,
+                                          width: 1,
+                                          color: widget.isDarkMode
+                                              ? Colors.white24
+                                              : Colors.black12,
+                                        ),
+                                        Flexible(
+                                          child: _buildWeatherDetail(
+                                            Icons.thermostat,
+                                            "Feels Like",
+                                            '${_currentWeather!.feelsLike.toStringAsFixed(1)}°C',
+                                            isCompact,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                            ],
+                          ),
+                        ),
                 ),
               ),
             ],

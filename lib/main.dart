@@ -12,19 +12,28 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      designSize: const Size(1440, 900),
-      minTextAdapt: true,
-      splitScreenMode: true,
-      builder: (context, child) {
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          title: 'Weather Web App',
-          theme: ThemeData(useMaterial3: true),
-          home: child,
-        );
-      },
-      child: const DashboardPage(),
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Weather Web App',
+      theme: ThemeData(useMaterial3: true),
+      home: LayoutBuilder(
+        builder: (context, constraints) {
+          // Use responsive design size based on screen width
+          return ScreenUtilInit(
+            designSize: constraints.maxWidth < 600
+                ? const Size(375, 812) // Mobile
+                : constraints.maxWidth < 1200
+                ? const Size(768, 1024) // Tablet
+                : const Size(1440, 900), // Desktop
+            minTextAdapt: true,
+            splitScreenMode: true,
+            builder: (context, child) {
+              return child!;
+            },
+            child: const DashboardPage(),
+          );
+        },
+      ),
     );
   }
 }
