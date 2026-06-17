@@ -21,7 +21,7 @@ class Api {
     }
   }
 
-  static String get baseUrl => "http://localhost:8000";
+  static String get baseUrl => "http://10.0.2.2:8000";
 
   static Future<void> addPlan(Map<String, String> pdata) async {
     print("Adding plan: $pdata");
