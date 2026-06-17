@@ -226,31 +226,10 @@ It then cross-references plan dates with forecast dates to give specific, action
 
 ---
 
-## 📦 Deployment
-
-### Backend (Render)
-1. Push code to GitHub
-2. Create a new **Web Service** on [Render](https://render.com)
-3. Set build command: `pip install -r requirements.txt`
-4. Set start command: `uvicorn main:app --host 0.0.0.0 --port 8000`
-5. Add environment variables (`GEMINI_API_KEY`, `MONGODB_URL`)
-
-### Frontend (Firebase Hosting)
-```bash
-cd frontend
-flutter build web
-firebase deploy
-```
-
-<br/>
-
----
-
 ## 👨‍💻 Author
 
 **Mohamed ElAmine Haj Mohamed**
 - 🎓 AI & Data Science Engineering Student — EPI International Multidisciplinary School, Tunisia
-- 💼 Seeking AI/ML Internship — July 2026
 
 <br/>
 
