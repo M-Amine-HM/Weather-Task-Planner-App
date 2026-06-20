@@ -10,7 +10,7 @@
 
 | Dashboard |
 |-----------|
-| ![Web App](screenshots/screenshot1.png) |
+| ![Web App](screenshots/screenshot01.png) |
 
 <br/>
 
