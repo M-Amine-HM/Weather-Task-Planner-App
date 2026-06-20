@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'models/plan_model.dart';
-import 'services/Api.dart';
+// import 'services/Api.dart'; // TODO: re-enable when database is added
 
 class AgendaWidget extends StatefulWidget {
   final bool isDarkMode;
@@ -23,52 +23,42 @@ class _AgendaWidgetState extends State<AgendaWidget> {
   @override
   void initState() {
     super.initState();
-    _loadPlansFromBackend();
+    // TODO: re-enable when database is added
+    // _loadPlansFromBackend();
   }
 
-  Future<void> _loadPlansFromBackend() async {
-    try {
-      List<Plan> fetchedPlans = await Api.getPlans();
-
-      if (fetchedPlans.isNotEmpty) {
-        setState(() {
-          // Clear existing plans
-          _plans.clear();
-
-          // Organize plans by their date
-          for (var plan in fetchedPlans) {
-            // Use the plan's date if available, otherwise use today
-            DateTime planDate = plan.date ?? DateTime.now();
-            String key = _getDateKey(planDate);
-
-            if (_plans[key] == null) {
-              _plans[key] = [];
-            }
-            _plans[key]!.add(plan);
-          }
-        });
-        // Notify parent dashboard about plans update
-        widget.onPlansUpdate?.call(fetchedPlans);
-      }
-    } catch (e) {
-      print('Error loading plans: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load plans from server'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
+  // ── COMMENTED OUT: Backend fetch ──────────────────────────────────────────
+  // Future<void> _loadPlansFromBackend() async {
+  //   try {
+  //     List<Plan> fetchedPlans = await Api.getPlans();
+  //     if (fetchedPlans.isNotEmpty) {
+  //       setState(() {
+  //         _plans.clear();
+  //         for (var plan in fetchedPlans) {
+  //           DateTime planDate = plan.date ?? DateTime.now();
+  //           String key = _getDateKey(planDate);
+  //           if (_plans[key] == null) _plans[key] = [];
+  //           _plans[key]!.add(plan);
+  //         }
+  //       });
+  //       widget.onPlansUpdate?.call(fetchedPlans);
+  //     }
+  //   } catch (e) {
+  //     print('Error loading plans: $e');
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('Failed to load plans from server'), backgroundColor: Colors.red),
+  //       );
+  //     }
+  //   }
+  // }
+  // ─────────────────────────────────────────────────────────────────────────
 
   String _getDateKey(DateTime date) {
     return '${date.year}-${date.month}-${date.day}';
   }
 
   void _notifyPlansUpdate() {
-    // Get all plans as a flat list
     List<Plan> allPlans = [];
     _plans.forEach((key, plansList) {
       allPlans.addAll(plansList);
@@ -80,145 +70,93 @@ class _AgendaWidgetState extends State<AgendaWidget> {
     return _plans[_getDateKey(day)] ?? [];
   }
 
-  Future<void> _addPlan(DateTime day, Plan plan) async {
-    try {
-      // Set the plan's date
-      plan.date = day;
+  // ── ADD: local only ───────────────────────────────────────────────────────
+  void _addPlan(DateTime day, Plan plan) {
+    plan.date = day;
 
-      // Send to backend with date
-      await Api.addPlan({
-        'title': plan.title,
-        'description': plan.description,
-        'date': day.toIso8601String(),
-      });
+    // TODO: re-enable when database is added
+    // await Api.addPlan({
+    //   'title': plan.title,
+    //   'description': plan.description,
+    //   'date': day.toIso8601String(),
+    // });
 
-      // Add to local state
+    setState(() {
       String key = _getDateKey(day);
-      if (_plans[key] == null) {
-        _plans[key] = [];
-      }
+      if (_plans[key] == null) _plans[key] = [];
       _plans[key]!.add(plan);
+    });
 
-      // Notify parent about plans update
-      _notifyPlansUpdate();
+    _notifyPlansUpdate();
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Plan added successfully!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error adding plan: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to add plan to server'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Plan added!'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
   }
 
-  Future<void> _deletePlan(DateTime day, Plan plan, int index) async {
-    try {
-      // Delete from backend if plan has an ID
-      if (plan.id.isNotEmpty) {
-        bool success = await Api.deletePlan(plan.id);
-        if (!success) {
-          throw Exception('Failed to delete from server');
-        }
-      }
+  // ── DELETE: local only ────────────────────────────────────────────────────
+  void _deletePlan(DateTime day, Plan plan, int index) {
+    // TODO: re-enable when database is added
+    // if (plan.id.isNotEmpty) {
+    //   bool success = await Api.deletePlan(plan.id);
+    //   if (!success) throw Exception('Failed to delete from server');
+    // }
 
-      // Remove from local state
-      setState(() {
-        String key = _getDateKey(day);
-        _plans[key]!.removeAt(index);
-        if (_plans[key]!.isEmpty) {
-          _plans.remove(key);
-        }
+    setState(() {
+      String key = _getDateKey(day);
+      _plans[key]!.removeAt(index);
+      if (_plans[key]!.isEmpty) _plans.remove(key);
+    });
+
+    _notifyPlansUpdate();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Plan deleted!'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      Future.delayed(const Duration(milliseconds: 300), () {
+        _showPlanDialog(day);
       });
-
-      // Notify parent about plans update
-      _notifyPlansUpdate();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Plan deleted successfully!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-        // Reopen dialog to show updated list
-        Future.delayed(Duration(milliseconds: 300), () {
-          _showPlanDialog(day);
-        });
-      }
-    } catch (e) {
-      print('Error deleting plan: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to delete plan from server'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     }
   }
 
-  Future<void> _updatePlan(
-    DateTime day,
-    Plan oldPlan,
-    Plan newPlan,
-    int index,
-  ) async {
-    try {
-      // Update on backend if plan has an ID
-      if (newPlan.id.isNotEmpty) {
-        bool success = await Api.updatePlan(newPlan.id, {
-          'title': newPlan.title,
-          'description': newPlan.description,
-          'date': newPlan.date?.toIso8601String() ?? day.toIso8601String(),
-        });
-        if (!success) {
-          throw Exception('Failed to update on server');
-        }
-      }
+  // ── UPDATE: local only ────────────────────────────────────────────────────
+  void _updatePlan(DateTime day, Plan oldPlan, Plan newPlan, int index) {
+    // TODO: re-enable when database is added
+    // if (newPlan.id.isNotEmpty) {
+    //   bool success = await Api.updatePlan(newPlan.id, {
+    //     'title': newPlan.title,
+    //     'description': newPlan.description,
+    //     'date': newPlan.date?.toIso8601String() ?? day.toIso8601String(),
+    //   });
+    //   if (!success) throw Exception('Failed to update on server');
+    // }
 
-      // Update in local state
-      setState(() {
-        String key = _getDateKey(day);
-        _plans[key]![index] = newPlan;
-      });
+    setState(() {
+      String key = _getDateKey(day);
+      _plans[key]![index] = newPlan;
+    });
 
-      // Notify parent about plans update
-      _notifyPlansUpdate();
+    _notifyPlansUpdate();
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Plan updated successfully!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error updating plan: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update plan on server'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Plan updated!'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
   }
 
@@ -296,7 +234,6 @@ class _AgendaWidgetState extends State<AgendaWidget> {
                             borderRadius: BorderRadius.circular(12.r),
                             border: Border.all(
                               color: Colors.blue.withOpacity(0.3),
-                              width: 1,
                             ),
                           ),
                           child: Row(
@@ -332,7 +269,10 @@ class _AgendaWidgetState extends State<AgendaWidget> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   IconButton(
-                                    icon: Icon(Icons.edit, color: Colors.blue),
+                                    icon: const Icon(
+                                      Icons.edit,
+                                      color: Colors.blue,
+                                    ),
                                     onPressed: () {
                                       Navigator.pop(context);
                                       _showEditPlanDialog(
@@ -343,14 +283,13 @@ class _AgendaWidgetState extends State<AgendaWidget> {
                                     },
                                   ),
                                   IconButton(
-                                    icon: Icon(Icons.delete, color: Colors.red),
-                                    onPressed: () async {
+                                    icon: const Icon(
+                                      Icons.delete,
+                                      color: Colors.red,
+                                    ),
+                                    onPressed: () {
                                       Navigator.pop(context);
-                                      await _deletePlan(
-                                        selectedDay,
-                                        plan,
-                                        index,
-                                      );
+                                      _deletePlan(selectedDay, plan, index);
                                     },
                                   ),
                                 ],
@@ -375,8 +314,8 @@ class _AgendaWidgetState extends State<AgendaWidget> {
                       Navigator.pop(context);
                       _showAddPlanDialog(selectedDay);
                     },
-                    icon: Icon(Icons.add),
-                    label: Text('Add New Plan'),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add New Plan'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,
@@ -417,7 +356,6 @@ class _AgendaWidgetState extends State<AgendaWidget> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
                 Text(
                   'Add Plan',
                   style: TextStyle(
@@ -451,7 +389,10 @@ class _AgendaWidgetState extends State<AgendaWidget> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.r),
-                      borderSide: BorderSide(color: Colors.blue, width: 2),
+                      borderSide: const BorderSide(
+                        color: Colors.blue,
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
@@ -481,13 +422,15 @@ class _AgendaWidgetState extends State<AgendaWidget> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.r),
-                      borderSide: BorderSide(color: Colors.blue, width: 2),
+                      borderSide: const BorderSide(
+                        color: Colors.blue,
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
                 SizedBox(height: 24.h),
 
-                // Action buttons
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -504,19 +447,18 @@ class _AgendaWidgetState extends State<AgendaWidget> {
                     ),
                     SizedBox(width: 12.w),
                     ElevatedButton(
-                      onPressed: () async {
+                      onPressed: () {
                         if (titleController.text.trim().isNotEmpty) {
                           Navigator.pop(context);
-                          await _addPlan(
+                          _addPlan(
                             selectedDay,
                             Plan(
-                              id: '', // Backend will assign ID
+                              id: '', // TODO: will be assigned by backend later
                               title: titleController.text.trim(),
                               description: descriptionController.text.trim(),
                               date: selectedDay,
                             ),
                           );
-                          setState(() {});
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -530,7 +472,7 @@ class _AgendaWidgetState extends State<AgendaWidget> {
                           borderRadius: BorderRadius.circular(12.r),
                         ),
                       ),
-                      child: Text('Add'),
+                      child: const Text('Add'),
                     ),
                   ],
                 ),
@@ -565,7 +507,6 @@ class _AgendaWidgetState extends State<AgendaWidget> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
                 Text(
                   'Edit Plan',
                   style: TextStyle(
@@ -599,7 +540,10 @@ class _AgendaWidgetState extends State<AgendaWidget> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.r),
-                      borderSide: BorderSide(color: Colors.blue, width: 2),
+                      borderSide: const BorderSide(
+                        color: Colors.blue,
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
@@ -629,13 +573,15 @@ class _AgendaWidgetState extends State<AgendaWidget> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.r),
-                      borderSide: BorderSide(color: Colors.blue, width: 2),
+                      borderSide: const BorderSide(
+                        color: Colors.blue,
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
                 SizedBox(height: 24.h),
 
-                // Action buttons
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -652,7 +598,7 @@ class _AgendaWidgetState extends State<AgendaWidget> {
                     ),
                     SizedBox(width: 12.w),
                     ElevatedButton(
-                      onPressed: () async {
+                      onPressed: () {
                         if (titleController.text.trim().isNotEmpty) {
                           Navigator.pop(context);
                           Plan updatedPlan = Plan(
@@ -661,14 +607,8 @@ class _AgendaWidgetState extends State<AgendaWidget> {
                             description: descriptionController.text.trim(),
                             date: plan.date ?? selectedDay,
                           );
-                          await _updatePlan(
-                            selectedDay,
-                            plan,
-                            updatedPlan,
-                            index,
-                          );
-                          // Reopen dialog to show updated plan
-                          Future.delayed(Duration(milliseconds: 300), () {
+                          _updatePlan(selectedDay, plan, updatedPlan, index);
+                          Future.delayed(const Duration(milliseconds: 300), () {
                             _showPlanDialog(selectedDay);
                           });
                         }
@@ -684,7 +624,7 @@ class _AgendaWidgetState extends State<AgendaWidget> {
                           borderRadius: BorderRadius.circular(12.r),
                         ),
                       ),
-                      child: Text('Update'),
+                      child: const Text('Update'),
                     ),
                   ],
                 ),
@@ -716,7 +656,6 @@ class _AgendaWidgetState extends State<AgendaWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title
           Text(
             "My Agenda",
             style: TextStyle(
@@ -727,7 +666,6 @@ class _AgendaWidgetState extends State<AgendaWidget> {
           ),
           SizedBox(height: 20.h),
 
-          // Calendar
           Expanded(
             child: Container(
               padding: EdgeInsets.all(16.w),
@@ -737,7 +675,6 @@ class _AgendaWidgetState extends State<AgendaWidget> {
               ),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  // Determine if we should use compact mode
                   bool isCompact =
                       constraints.maxWidth < 400 || constraints.maxHeight < 400;
 
@@ -754,36 +691,63 @@ class _AgendaWidgetState extends State<AgendaWidget> {
                           _selectedDay = selectedDay;
                           _focusedDay = focusedDay;
                         });
+
+                        // Disable adding plans to past days
+                        final today = DateTime.now();
+                        final isPastDay = selectedDay.isBefore(
+                          DateTime(today.year, today.month, today.day),
+                        );
+
+                        if (isPastDay) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                "Can't add plans to past days.",
+                              ),
+                              backgroundColor: Colors.orange[700],
+                              duration: const Duration(seconds: 2),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+
                         _showPlanDialog(selectedDay);
                       },
-                      eventLoader: (day) {
-                        return _getPlansForDay(day);
-                      },
+                      eventLoader: (day) => _getPlansForDay(day),
                       onFormatChanged: (format) {
-                        setState(() {
-                          _calendarFormat = format;
-                        });
+                        setState(() => _calendarFormat = format);
                       },
                       onPageChanged: (focusedDay) {
                         _focusedDay = focusedDay;
                       },
-                      // Responsive Calendar Style
                       calendarStyle: CalendarStyle(
-                        todayDecoration: BoxDecoration(
+                        todayDecoration: const BoxDecoration(
                           color: Colors.green,
                           shape: BoxShape.circle,
                         ),
-                        selectedDecoration: BoxDecoration(
+                        selectedDecoration: const BoxDecoration(
                           color: Colors.blue,
                           shape: BoxShape.circle,
                         ),
-                        markerDecoration: BoxDecoration(
+                        markerDecoration: const BoxDecoration(
                           color: Colors.orange,
                           shape: BoxShape.circle,
                         ),
                         markerSize: 7.0,
                         markersMaxCount: 1,
                         canMarkersOverflow: false,
+                        // Past days greyed out
+                        disabledTextStyle: TextStyle(
+                          color: widget.isDarkMode
+                              ? Colors.white24
+                              : Colors.black26,
+                          fontSize: isCompact ? 12.sp : 14.sp,
+                          //decoration: TextDecoration.lineThrough,
+                        ),
                         defaultTextStyle: TextStyle(
                           color: widget.isDarkMode
                               ? Colors.white
@@ -812,11 +776,16 @@ class _AgendaWidgetState extends State<AgendaWidget> {
                           fontSize: isCompact ? 12.sp : 14.sp,
                           fontWeight: FontWeight.bold,
                         ),
-                        // Responsive cell padding
                         cellPadding: EdgeInsets.all(isCompact ? 4.w : 8.w),
                         cellMargin: EdgeInsets.all(isCompact ? 2.w : 4.w),
                       ),
-                      // Responsive Header Style
+                      // Disable interaction on past days
+                      enabledDayPredicate: (day) {
+                        final today = DateTime.now();
+                        return !day.isBefore(
+                          DateTime(today.year, today.month, today.day),
+                        );
+                      },
                       headerStyle: HeaderStyle(
                         formatButtonVisible: !isCompact,
                         titleCentered: true,
@@ -860,7 +829,6 @@ class _AgendaWidgetState extends State<AgendaWidget> {
                           vertical: isCompact ? 8.h : 12.h,
                         ),
                       ),
-                      // Responsive Days of Week Style
                       daysOfWeekStyle: DaysOfWeekStyle(
                         weekdayStyle: TextStyle(
                           color: widget.isDarkMode
@@ -877,7 +845,6 @@ class _AgendaWidgetState extends State<AgendaWidget> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      // Responsive sizing
                       daysOfWeekHeight: isCompact ? 30.h : 40.h,
                       rowHeight: isCompact ? 35.h : 48.h,
                       availableGestures: AvailableGestures.all,

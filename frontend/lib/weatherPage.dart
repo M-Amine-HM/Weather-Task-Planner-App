@@ -26,13 +26,15 @@ class _WeatherWidgetState extends State<WeatherWidget> {
   final TextEditingController _searchController = TextEditingController();
 
   Weather? _currentWeather;
+  List<Map<String, dynamic>>? _forecast; // stores full forecast list
+  List<Map<String, dynamic>> _hourly = []; // today's hourly slots
   bool _isLoading = false;
   String _errorMessage = '';
 
   @override
   void initState() {
     super.initState();
-    _fetchWeather("New York");
+    _fetchWeather("Sousse");
   }
 
   Future<void> _fetchWeather(String city) async {
@@ -44,7 +46,6 @@ class _WeatherWidgetState extends State<WeatherWidget> {
     });
 
     try {
-      // Fetch both current weather and forecast
       Weather? weather = await Api.getCurrentWeather(city.trim());
       Map<String, dynamic>? forecastData = await Api.getWeatherForecast(
         city.trim(),
@@ -52,22 +53,37 @@ class _WeatherWidgetState extends State<WeatherWidget> {
       );
 
       if (weather != null) {
-        setState(() {
-          _currentWeather = weather;
-          _isLoading = false;
-        });
-        // Notify parent dashboard about weather and forecast update
         List<Map<String, dynamic>>? forecast;
         if (forecastData != null && forecastData['forecast'] != null) {
           try {
             forecast = (forecastData['forecast'] as List)
                 .map((item) => item as Map<String, dynamic>)
                 .toList();
-            print('Forecast loaded: ${forecast.length} days');
           } catch (e) {
             print('Error parsing forecast: $e');
           }
         }
+
+        // Parse hourly from weather response
+        List<Map<String, dynamic>> hourly = [];
+        if (weather != null) {
+          try {
+            final raw = (weather as dynamic).hourly;
+            if (raw != null) {
+              hourly = (raw as List)
+                  .map((e) => e as Map<String, dynamic>)
+                  .toList();
+            }
+          } catch (_) {}
+        }
+
+        setState(() {
+          _currentWeather = weather;
+          _forecast = forecast;
+          _hourly = hourly;
+          _isLoading = false;
+        });
+
         widget.onWeatherUpdate?.call(weather, city.trim(), forecast);
       } else {
         setState(() {
@@ -105,6 +121,170 @@ class _WeatherWidgetState extends State<WeatherWidget> {
     }
   }
 
+  Color _getConditionColor(String condition) {
+    switch (condition.toLowerCase()) {
+      case 'clear':
+        return Colors.orange;
+      case 'clouds':
+        return Colors.blueGrey;
+      case 'rain':
+      case 'drizzle':
+        return Colors.blue;
+      case 'thunderstorm':
+        return Colors.deepPurple;
+      case 'snow':
+        return Colors.lightBlue;
+      case 'fog':
+      case 'mist':
+        return Colors.grey;
+      default:
+        return Colors.blueGrey;
+    }
+  }
+
+  // ── Next 3 Days forecast strip ────────────────────────────────────────────
+  Widget _buildNext3Days(bool isCompact) {
+    if (_forecast == null || _forecast!.isEmpty) return const SizedBox.shrink();
+
+    // Skip index 0 (today), take next 3
+    final next3 = _forecast!.skip(1).take(3).toList();
+    if (next3.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: isCompact ? 12.h : 16.h),
+        Row(
+          children: [
+            // Icon(
+            //   Icons.calendar_today,
+            //   size: isCompact ? 14.sp : 16.sp,
+            //   color: widget.isDarkMode
+            //       ? Colors.blue[300]
+            //       : const Color(0xFF1E4A7B),
+            // ),
+            // SizedBox(width: 6.w),
+            // Text(
+            //   "Next 3 Days",
+            //   style: TextStyle(
+            //     fontSize: isCompact ? 13.sp : 15.sp,
+            //     fontWeight: FontWeight.bold,
+            //     color: widget.isDarkMode ? Colors.white : Colors.black87,
+            //   ),
+            // ),
+          ],
+        ),
+        SizedBox(height: isCompact ? 8.h : 10.h),
+        Row(
+          children: next3.map((day) {
+            final date = DateTime.tryParse(day['date'] ?? '');
+            final dayLabel = date != null
+                ? _getDayLabel(date)
+                : (day['date'] ?? '');
+            final condition = day['condition'] ?? 'Clear';
+            final maxTemp = day['temperature_max']?.toStringAsFixed(0) ?? '--';
+            final minTemp = day['temperature_min']?.toStringAsFixed(0) ?? '--';
+
+            return Expanded(
+              child: Container(
+                margin: EdgeInsets.symmetric(horizontal: 4.w),
+                padding: EdgeInsets.symmetric(
+                  vertical: isCompact ? 8.h : 12.h,
+                  horizontal: isCompact ? 4.w : 6.w,
+                ),
+                decoration: BoxDecoration(
+                  color: widget.isDarkMode ? Colors.grey[700] : Colors.blue[50],
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(
+                    color: widget.isDarkMode
+                        ? Colors.white12
+                        : Colors.blue.withOpacity(0.15),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Day name
+                    Text(
+                      dayLabel,
+                      style: TextStyle(
+                        fontSize: isCompact ? 11.sp : 13.sp,
+                        fontWeight: FontWeight.bold,
+                        color: widget.isDarkMode
+                            ? Colors.white70
+                            : const Color(0xFF1E4A7B),
+                      ),
+                    ),
+                    SizedBox(height: 6.h),
+                    // Weather icon
+                    Icon(
+                      _getWeatherIcon(condition),
+                      size: isCompact ? 22.sp : 26.sp,
+                      color: _getConditionColor(condition),
+                    ),
+                    SizedBox(height: 6.h),
+                    // Condition label
+                    Text(
+                      condition,
+                      style: TextStyle(
+                        fontSize: isCompact ? 10.sp : 11.sp,
+                        color: widget.isDarkMode
+                            ? Colors.white54
+                            : Colors.black45,
+                      ),
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 6.h),
+                    // Max / Min temp
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '$maxTemp°',
+                          style: TextStyle(
+                            fontSize: isCompact ? 13.sp : 15.sp,
+                            fontWeight: FontWeight.bold,
+                            color: widget.isDarkMode
+                                ? Colors.white
+                                : Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          ' / ',
+                          style: TextStyle(
+                            fontSize: isCompact ? 11.sp : 12.sp,
+                            color: widget.isDarkMode
+                                ? Colors.white38
+                                : Colors.black26,
+                          ),
+                        ),
+                        Text(
+                          '$minTemp°',
+                          style: TextStyle(
+                            fontSize: isCompact ? 11.sp : 13.sp,
+                            color: widget.isDarkMode
+                                ? Colors.white54
+                                : Colors.black45,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  String _getDayLabel(DateTime date) {
+    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return days[date.weekday - 1];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -134,7 +314,6 @@ class _WeatherWidgetState extends State<WeatherWidget> {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          // Determine compact mode based on available space
           bool isCompact =
               constraints.maxWidth < 300 || constraints.maxHeight < 400;
           bool isVeryCompact =
@@ -181,6 +360,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                 style: TextStyle(
                   fontSize: isVeryCompact ? 12.sp : (isCompact ? 13.sp : 14.sp),
                 ),
+                onSubmitted: (value) => _fetchWeather(value),
                 decoration: InputDecoration(
                   prefixIcon: Icon(
                     Icons.search,
@@ -195,9 +375,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                     ),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
-                    onPressed: () {
-                      _fetchWeather(_searchController.text);
-                    },
+                    onPressed: () => _fetchWeather(_searchController.text),
                   ),
                   hintText: isVeryCompact ? "Search..." : "Search city...",
                   hintStyle: TextStyle(
@@ -225,7 +403,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                 height: isVeryCompact ? 10.h : (isCompact ? 12.h : 15.h),
               ),
 
-              // Current Weather Display
+              // Current Weather + 3-day forecast
               Expanded(
                 child: Container(
                   width: double.infinity,
@@ -319,9 +497,9 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                                             _currentWeather!.condition,
                                           ),
                                           size: 50.sp,
-                                          color: widget.isDarkMode
-                                              ? Colors.blue[300]
-                                              : Colors.orange,
+                                          color: _getConditionColor(
+                                            _currentWeather!.condition,
+                                          ),
                                         ),
                                         SizedBox(height: 8.h),
                                         Text(
@@ -347,9 +525,9 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                                             _currentWeather!.condition,
                                           ),
                                           size: isCompact ? 60.sp : 70.sp,
-                                          color: widget.isDarkMode
-                                              ? Colors.blue[300]
-                                              : Colors.orange,
+                                          color: _getConditionColor(
+                                            _currentWeather!.condition,
+                                          ),
                                         ),
                                         SizedBox(
                                           width: isCompact ? 12.w : 16.w,
@@ -372,7 +550,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                                     : (isCompact ? 8.h : 10.h),
                               ),
 
-                              // Weather Condition
+                              // Condition text
                               Text(
                                 '${_currentWeather!.condition} - ${_currentWeather!.description}',
                                 style: TextStyle(
@@ -391,7 +569,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                                     : (isCompact ? 16.h : 20.h),
                               ),
 
-                              // Weather Details
+                              // Weather details row
                               isVeryCompact
                                   ? Column(
                                       children: [
@@ -461,6 +639,9 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                                         ),
                                       ],
                                     ),
+
+                              // ── Next 3 Days ──────────────────────
+                              _buildNext3Days(isCompact),
                             ],
                           ),
                         ),
